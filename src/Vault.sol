@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 import {IRebaseToken} from "./interfaces/IRebaseToken.sol";
 
@@ -24,12 +24,17 @@ contract Vault {
     receive() external payable {}
 
     function deposit() external payable {
-        i_rebaseToken.mint(msg.sender, msg.value);
+        uint256 interestRate = i_rebaseToken.getInterestRate();
+        i_rebaseToken.mint(msg.sender, msg.value, interestRate);
         emit Deposit(msg.sender, msg.value);
     }
 
     function redeem(uint256 _amount) external payable {
-        i_rebaseToken.burn(msg.sender, msg.value); // first burn
+        if(_amount == type(uint256).max){
+            _amount = i_rebaseToken.balanceOf(msg.sender); // avoid dust due long time passing in TXs
+        }
+        
+        i_rebaseToken.burn(msg.sender, _amount); // first burn
         
         (bool success,)= payable(msg.sender).call{value: _amount}(""); // then redeem
         if (!success) {

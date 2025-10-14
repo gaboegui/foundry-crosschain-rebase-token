@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,8 +17,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     error RebaseToken__InterestRateCanOnlyDecrease(uint256 _interestRate, uint256 s_interestRate);
 
     bytes32 private constant MINT_AND_BURN_ROLE = keccak256("MINT_AND_BURN_ROLE");
-    uint256 private constant PRECISION_FACTOR = 1e18;
-    uint256 private s_interestRate = 5e10; 
+    uint256 private constant PRECISION_FACTOR = 1e18;  // avoid truncation errors
+    uint256 private s_interestRate = (5 * PRECISION_FACTOR) / 1e8; // interest per second
     mapping (address => uint256) private s_userInterestRate;
     mapping (address => uint256) private s_userLastUpdatedTimeStamp;
     
@@ -43,9 +43,9 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     }
     
     // implemented access control based on an specific role
-    function mint(address _to, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
+    function mint(address _to, uint256 _amount, uint256 _userInterestRate) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAcumulatedInterest(_to); // is the value adquired since the first mint
-        s_userInterestRate[_to] = s_interestRate; // set user interest rate to global interest rate
+        s_userInterestRate[_to] = _userInterestRate; 
         _mint(_to, _amount);
     }
 
@@ -59,6 +59,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
 
     // overrides balanceOf function from ERC20 contract, includes the acumulated interest  
     function balanceOf(address _user) public view override returns (uint256 linearInterest) {
+        // every interaction will call this, even small amounts. That could lead to compound interest
         return super.balanceOf(_user) * _calculateUserAccumulatedInterestSinceLastUpdate(_user) / PRECISION_FACTOR;
     }
 
@@ -110,7 +111,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         _mint(_user, balanceIncrease);
     }
 
-    function getUserInterestRate(address _user) public view returns (uint256) {
+    function getUserInterestRate(address _user) external view returns (uint256) {
         return s_userInterestRate[_user];
     }
     /**
@@ -126,7 +127,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      * @notice This is the global interest rate of the protocol
      * @return interest the global interest rate
      */
-    function getInterestRate() public view returns (uint256 interest) {
+    function getInterestRate() external view returns (uint256 interest) {
         return s_interestRate;
     }
 }
