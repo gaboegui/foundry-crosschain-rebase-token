@@ -43,12 +43,14 @@ contract CrossChainRebaseToken is Test {
 
     function setUp() public {
         
-        // string memory DESTINATION_RPC_URL = vm.envString("ETHEREUM_SEPOLIA_RPC_URL");
-        // sepholiaFork = vm.createSelectFork(DESTINATION_RPC_URL);
+        string memory ETHEREUM_SEPOLIA = vm.envString("SEPOLIA_RPC_URL");
+        string memory ARBITRUM_SEPOLIA = vm.envString("ARBITRUM_SEPOLIA_RPC_URL");
+        sepholiaFork = vm.createSelectFork(ETHEREUM_SEPOLIA);
+        arbitrumSepoliaFork = vm.createFork(ARBITRUM_SEPOLIA);
         
-        //defined in foundry.toml -> rpc_endpoints
-        sepholiaFork = vm.createSelectFork("sepholia-eth");
-        arbitrumSepoliaFork = vm.createFork("arbitrun-sepolia");
+        //defined in foundry.toml -> rpc_endpoints (not used because I dont want to commit the RPC_URLs)
+        //sepholiaFork = vm.createSelectFork("sepholia-eth");
+        //arbitrumSepoliaFork = vm.createFork("arbitrun-sepolia");
 
         // Chain Link Local
         ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
