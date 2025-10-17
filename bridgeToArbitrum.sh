@@ -4,8 +4,9 @@
 # You create the ERC-2335: BLS12-381 Keystore with the PRIVATE KEY with this command:
 #    cast wallet import sepoliaAccount2 --interactive
 # We can provide the password of the sepoliaAccount2 to avoid enTering every time that is need
-# --> if you want to include the password in the first line of .env file
-PASSWORD=$(head -n 1 .env)  
+# --> if you want to include the password in .env file
+source .env
+PASSWORD=${KEY_STORE_PASSWORD}
 
 # Define constants 
 # Amount in Wei = 0.0001 Ether
@@ -19,7 +20,7 @@ SEPOLIA_ROUTER="0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
 SEPOLIA_CHAIN_SELECTOR="16015286601757825753"
 SEPOLIA_LINK_ADDRESS="0x779877A7B0D9E8603169DdbD7836e478b4624789"
 
-source .env
+
 # 1. On Arbitrum Sepolia!
 echo "Running the script to deploy the contracts on Arbitrum Sepolia..."
 output=$(forge script ./script/Deployer.s.sol:TokenAndPoolDeployer --rpc-url ${ARB_SEPOLIA_RPC_URL} --account sepoliaAccount2 --password $PASSWORD --broadcast --verify --etherscan-api-key $ARBISCAN_API_KEY)

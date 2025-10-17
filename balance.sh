@@ -1,7 +1,7 @@
 #!/bin/bash
 source .env
-# We can provide the password of the sepoliaAccount2 to avoid enTering every time that is need
-PASSWORD=$(head -n 1 .env)  
+# We can provide the password of the sepoliaAccount2 to avoid entering every time that is need
+PASSWORD=${KEY_STORE_PASSWORD}
 
 # Sepolia!
 SEPOLIA_REBASE_TOKEN_ADDRESS=0x2ddeFc338823E53693CCce0E3EC9214Cc389A9F0
