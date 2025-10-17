@@ -4,6 +4,8 @@
  * @author Gabriel Eguiguren
  * @notice This test suite covers the unit tests for the RebaseToken contract,
  * ensuring all individual functions and state changes behave as expected.
+ * @dev IMPORTANT: Due we are using via_ir = true in foundry.toml or forge build --via-ir
+ *  the functions that will use vm.warp are not working due a know BUG
  */
 pragma solidity ^0.8.24;
 
