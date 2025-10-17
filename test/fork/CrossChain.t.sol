@@ -44,7 +44,7 @@ contract CrossChainRebaseToken is Test {
     function setUp() public {
         
         string memory ETHEREUM_SEPOLIA = vm.envString("SEPOLIA_RPC_URL");
-        string memory ARBITRUM_SEPOLIA = vm.envString("ARBITRUM_SEPOLIA_RPC_URL");
+        string memory ARBITRUM_SEPOLIA = vm.envString("ARB_SEPOLIA_RPC_URL");
         sepholiaFork = vm.createSelectFork(ETHEREUM_SEPOLIA);
         arbitrumSepoliaFork = vm.createFork(ARBITRUM_SEPOLIA);
         

@@ -14,15 +14,15 @@ import { Vault } from "../src/Vault.sol";
 import { RebaseTokenPool } from "../src/RebaseTokenPool.sol";
 
 contract TokenAndPoolDeployer is Script {
-    function run() public returns (RebaseToken rebaseToken, RebaseTokenPool rebaseTokenPool){
+    function run() public returns (RebaseToken token, RebaseTokenPool pool){
         // Chain Link Local and Data for configuration
         CCIPLocalSimulatorFork ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
         Register.NetworkDetails memory networkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid);
  
         vm.startBroadcast();
         // Token and tokenPool SETUP
-        rebaseToken = new RebaseToken();
-        rebaseTokenPool = new RebaseTokenPool(IERC20(address(rebaseToken)), new address[](0),
+        token = new RebaseToken();
+        pool = new RebaseTokenPool(IERC20(address(token)), new address[](0),
             networkDetails.rmnProxyAddress, networkDetails.routerAddress);
         vm.stopBroadcast(); 
     }
@@ -33,7 +33,7 @@ contract SetPermissions is Script {
     function grantRole ( address rebaseToken, address rebaseTokenPool) public {
         vm.startBroadcast();
         IRebaseToken(rebaseToken).grantMintAndBurnRole(address(rebaseTokenPool));
-        vm.startBroadcast();
+        vm.stopBroadcast();
     }
 
     function setAdmin(address rebaseToken, address rebaseTokenPool) public {
