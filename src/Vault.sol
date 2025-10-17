@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Vault
+ * @author Gabriel Eguiguren
+ * @notice This contract serves as a vault for the RebaseToken.
+ * Users can deposit Ether and receive RebaseTokens, and redeem their RebaseTokens for Ether.
+ */
 pragma solidity ^0.8.24;
 
 import {IRebaseToken} from "./interfaces/IRebaseToken.sol";
@@ -13,22 +19,32 @@ contract Vault {
     
     error Vault__RedeemTransferFoundsFailed();
 
+    /**
+     * @notice Constructor for the Vault.
+     * @param _rebaseToken The address of the RebaseToken contract.
+     */
     constructor(IRebaseToken _rebaseToken) {
         i_rebaseToken = _rebaseToken;
     }
     
     /**
-     * @notice Its purpose is to allow a smart contract to accept incoming Ether that is sent to it without 
-     * any associated data (i.e., via a plain transfer or .send() / .transfer() calls).
+     * @notice Receives Ether sent to the contract.
      */
     receive() external payable {}
 
+    /**
+     * @notice Deposits Ether and mints RebaseTokens to the sender.
+     */
     function deposit() external payable {
         uint256 interestRate = i_rebaseToken.getInterestRate();
         i_rebaseToken.mint(msg.sender, msg.value, interestRate);
         emit Deposit(msg.sender, msg.value);
     }
 
+    /**
+     * @notice Redeems RebaseTokens for Ether.
+     * @param _amount The amount of RebaseTokens to redeem.
+     */
     function redeem(uint256 _amount) external payable {
         if(_amount == type(uint256).max){
             _amount = i_rebaseToken.balanceOf(msg.sender); // avoid dust due long time passing in TXs
@@ -43,10 +59,11 @@ contract Vault {
         emit Redeem(msg.sender, _amount);
     }
 
+    /**
+     * @notice Gets the address of the RebaseToken contract.
+     * @return The address of the RebaseToken contract.
+     */
     function getRebaseTokenAddress() public view returns (address) {
         return address(i_rebaseToken);
     }
 }
-
-
-

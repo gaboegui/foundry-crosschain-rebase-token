@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Cross-Chain Rebase Token Test
+ * @author Gabriel Eguiguren
+ * @notice This test suite validates the cross-chain functionality of the RebaseToken,
+ * ensuring that tokens can be bridged between different blockchains while maintaining their interest rate properties.
+ */
 pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
@@ -41,6 +47,9 @@ contract CrossChainRebaseToken is Test {
     RegistryModuleOwnerCustom public registryModuleOwnerCustom;
     TokenAdminRegistry public tokenAdminRegistry;
 
+    /**
+     * @notice Sets up the test environment by forking blockchains, deploying contracts, and configuring CCIP.
+     */
     function setUp() public {
         
         string memory ETHEREUM_SEPOLIA = vm.envString("SEPOLIA_RPC_URL");
@@ -124,7 +133,12 @@ contract CrossChainRebaseToken is Test {
     }
 
     /**
-     * @dev function to configure and Updates Token Pools with all neccesary data    
+     * @notice Configures and updates token pools with necessary data.
+     * @param networkFork The fork of the network to select.
+     * @param originPool The address of the origin pool.
+     * @param remotePool The address of the remote pool.
+     * @param remoteChainSelector The chain selector for the remote chain.
+     * @param remoteTokenAddress The address of the remote token.
      */
     function configureTokenPool(uint256 networkFork, 
             address originPool, 
@@ -161,17 +175,17 @@ contract CrossChainRebaseToken is Test {
         ); 
     }
 
-    /*
+    /**
+     * @notice Bridges tokens between two chains and performs assertions.
+     * @param amountToBridge The amount of tokens to bridge.
+     * @param originFork The fork of the origin chain.
      * @dev Function that will send the tokens between two chains
      * @dev some assertions are perfomed inside this function to simplify the calls in test methods
-     * 
-     * @param amountToBridge 
-     * @param originFork 
-     * @param destinationFork 
-     * @param originNetworkDetails 
-     * @param destinationNetworkDetails 
-     * @param originToken 
-     * @param destinationToken 
+     * @param destinationFork The fork of the destination chain.
+     * @param originNetworkDetails The network details of the origin chain.
+     * @param destinationNetworkDetails The network details of the destination chain.
+     * @param originToken The RebaseToken on the origin chain.
+     * @param destinationToken The RebaseToken on the destination chain.
      */
     function bridgeTokens(uint256 amountToBridge, uint256 originFork, uint256 destinationFork,
         Register.NetworkDetails memory originNetworkDetails, 
@@ -235,6 +249,9 @@ contract CrossChainRebaseToken is Test {
         assertEq(originUserInterest, destinationUserInterest);
     }
 
+    /**
+     * @notice Tests the bridging of all tokens from one chain to another and back.
+     */
     function testBridgeAllTokens() public {
         vm.selectFork(sepholiaFork);
         vm.deal(user, FOUND_VALUE);

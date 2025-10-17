@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Deployment and Configuration Scripts
+ * @author Gabriel Eguiguren
+ * @notice This file contains a suite of scripts for deploying and configuring the RebaseToken ecosystem.
+ * It includes scripts for deploying the token and its pool, setting necessary permissions, and deploying the vault.
+ */
 pragma solidity ^0.8.24;
 
 import { Script } from "forge-std/Script.sol";
@@ -13,7 +19,15 @@ import { IRebaseToken } from "../src/interfaces/IRebaseToken.sol";
 import { Vault } from "../src/Vault.sol";
 import { RebaseTokenPool } from "../src/RebaseTokenPool.sol";
 
+/**
+ * @notice Deploys the RebaseToken and RebaseTokenPool contracts.
+ */
 contract TokenAndPoolDeployer is Script {
+    /**
+     * @notice Executes the deployment of the token and pool.
+     * @return token The newly deployed RebaseToken.
+     * @return pool The newly deployed RebaseTokenPool.
+     */
     function run() public returns (RebaseToken token, RebaseTokenPool pool){
         // Chain Link Local and Data for configuration
         CCIPLocalSimulatorFork ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
@@ -28,14 +42,27 @@ contract TokenAndPoolDeployer is Script {
     }
 }
 
+/**
+ * @notice Sets the necessary permissions for the RebaseToken ecosystem.
+ */
 contract SetPermissions is Script {
     
+    /**
+     * @notice Grants the MINT_AND_BURN_ROLE to the RebaseTokenPool.
+     * @param rebaseToken The address of the RebaseToken.
+     * @param rebaseTokenPool The address of the RebaseTokenPool.
+     */
     function grantRole ( address rebaseToken, address rebaseTokenPool) public {
         vm.startBroadcast();
         IRebaseToken(rebaseToken).grantMintAndBurnRole(address(rebaseTokenPool));
         vm.stopBroadcast();
     }
 
+    /**
+     * @notice Sets the admin for the RebaseToken in the TokenAdminRegistry.
+     * @param rebaseToken The address of the RebaseToken.
+     * @param rebaseTokenPool The address of the RebaseTokenPool.
+     */
     function setAdmin(address rebaseToken, address rebaseTokenPool) public {
         // Chain Link Local and Data for configuration
         CCIPLocalSimulatorFork ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
@@ -54,7 +81,15 @@ contract SetPermissions is Script {
     }   
 }
 
+/**
+ * @notice Deploys the Vault contract.
+ */
 contract VaultDeployer is Script {
+    /**
+     * @notice Executes the deployment of the Vault.
+     * @param rebaseToken The address of the RebaseToken.
+     * @return vault The newly deployed Vault.
+     */
     function run (address rebaseToken) public returns (Vault vault){ 
         vm.startBroadcast();
         vault = new Vault(IRebaseToken(rebaseToken));
@@ -62,5 +97,3 @@ contract VaultDeployer is Script {
         vm.stopBroadcast();
     }
 }
-
-

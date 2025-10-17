@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Bridge Tokens Script
+ * @author Gabriel Eguiguren
+ * @notice This script facilitates the bridging of tokens to a different blockchain using Chainlink's CCIP.
+ * It approves the necessary tokens and initiates a cross-chain message to transfer the specified amount.
+ */
 pragma solidity ^0.8.24;
 
 import { Script } from "forge-std/Script.sol";
@@ -9,6 +15,16 @@ import { IERC20 } from "@ccip/contracts/src/v0.8/vendor/openzeppelin-solidity/v4
 
 
 contract BridgeTokens is Script{
+
+    /**
+     * @notice Executes the token bridging process.
+     * @param receiverAddress The address of the receiver on the destination chain.
+     * @param destinationChainSelector The chain selector for the destination blockchain.
+     * @param tokenToSendAddress The address of the token to be bridged.
+     * @param amountToSend The amount of tokens to send.
+     * @param linkTokenAddress The address of the LINK token for paying fees.
+     * @param routerAddress The address of the CCIP router.
+     */
     function run(
         address receiverAddress,
         uint64 destinationChainSelector,
@@ -22,7 +38,6 @@ contract BridgeTokens is Script{
         Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
         tokenAmounts[0] = Client.EVMTokenAmount({ token: tokenToSendAddress, amount: amountToSend});
 
-        
         // set the message data
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(receiverAddress), data: "",

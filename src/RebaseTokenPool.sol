@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Rebase Token Pool
+ * @author Gabriel Eguiguren
+ * @notice This contract extends the CCIP TokenPool to handle the cross-chain transfer of RebaseTokens.
+ * It manages the burning of tokens on the source chain and the minting of tokens on the destination chain,
+ * ensuring that the user's interest rate is preserved across chains.
+ */
 pragma solidity ^0.8.24;
 
 import { TokenPool } from "@ccip/contracts/src/v0.8/ccip/pools/TokenPool.sol";
@@ -7,21 +14,28 @@ import { IERC20 } from "@ccip/contracts/src/v0.8/vendor/openzeppelin-solidity/v4
 import { IRebaseToken } from "./interfaces/IRebaseToken.sol";
 
 /**
- * @title Token Pool to be implemented with CCIP functionality
- * @author Gabriel Eguiguren P.
- * @notice IERC20 should be the same version of TokenPool.sol
+ * @notice This contract is a token pool for the RebaseToken, designed to be used with the Chainlink CCIP.
+ * It handles the locking and burning of tokens on the source chain and the releasing and minting of tokens on the destination chain.
  */
 contract RebaseTokenPool is TokenPool {
 
     uint8 private constant DECIMALS = 18;
     
+    /**
+     * @notice Constructor for the RebaseTokenPool.
+     * @param token The address of the RebaseToken.
+     * @param allowlist An array of addresses that are allowed to interact with the pool.
+     * @param rmnProxy The address of the Risk Management Network proxy.
+     * @param router The address of the CCIP router.
+     */
     constructor (IERC20 token, address[] memory allowlist, address rmnProxy, address router) 
         TokenPool (token, DECIMALS, allowlist, rmnProxy, router) {
     }
 
-    /*
-     * 
-     * @param lockOrBurnIn 
+    /**
+     * @notice Burns the specified amount of tokens and sends the user's interest rate to the destination chain.
+     * @param lockOrBurnIn A struct containing the details of the lock or burn operation.
+     * @return lockOrBurnOut A struct containing the details of the lock or burn operation.
      */
     function lockOrBurn(Pool.LockOrBurnInV1 calldata lockOrBurnIn) 
         external returns (Pool.LockOrBurnOutV1 memory lockOrBurnOut){
@@ -39,9 +53,10 @@ contract RebaseTokenPool is TokenPool {
 
     }
 
-    /*
-     * 
-     * @param releaseOrMintIn 
+    /**
+     * @notice Mints the specified amount of tokens to the receiver with the user's interest rate from the source chain.
+     * @param releaseOrMintIn A struct containing the details of the release or mint operation.
+     * @return ReleaseOrMintOutV1 A struct containing the details of the release or mint operation.
      */
     function releaseOrMint(Pool.ReleaseOrMintInV1 calldata releaseOrMintIn) 
         external returns (Pool.ReleaseOrMintOutV1 memory){

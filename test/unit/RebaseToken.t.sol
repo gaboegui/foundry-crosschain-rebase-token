@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+/**
+ * @title Rebase Token Unit Test
+ * @author Gabriel Eguiguren
+ * @notice This test suite covers the unit tests for the RebaseToken contract,
+ * ensuring all individual functions and state changes behave as expected.
+ */
+pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 import { RebaseToken } from "../../src/RebaseToken.sol";
@@ -17,6 +23,9 @@ contract RebaseTokenTest is Test {
 
     event InterestRateSet(uint256 interestRate);
 
+    /**
+     * @notice Sets up the test environment by deploying the RebaseToken and assigning roles.
+     */
     function setUp() public {
         owner = makeAddr("owner");
         user1 = makeAddr("user1");
@@ -30,6 +39,9 @@ contract RebaseTokenTest is Test {
         rebaseToken.grantMintAndBurnRole(minter);
     }
 
+    /**
+     * @notice Tests the initial state of the contract upon deployment.
+     */
     function test_InitialState() public {
         assertEq(rebaseToken.owner(), owner);
         assertEq(rebaseToken.name(), "Rebase Token");
@@ -37,16 +49,25 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.getInterestRate(), INTEREST_RATE);
     }
 
+    /**
+     * @notice Tests that the mint and burn role can be granted successfully.
+     */
     function test_grantMintAndBurnRole() public {
         assertTrue(rebaseToken.hasRole(MINT_AND_BURN_ROLE, minter));
     }
 
+    /**
+     * @notice Tests that granting the mint and burn role fails if not called by the owner.
+     */
     function test_fail_grantMintAndBurnRole_NotOwner() public {
         vm.prank(user1);
         vm.expectRevert();
         rebaseToken.grantMintAndBurnRole(user2);
     }
 
+    /**
+     * @notice Tests that the interest rate can be set successfully.
+     */
     function test_setInterestRate() public {
         uint256 newInterestRate = 4e10;
         vm.prank(owner);
@@ -56,18 +77,27 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.getInterestRate(), newInterestRate);
     }
 
+    /**
+     * @notice Tests that setting the interest rate fails if not called by the owner.
+     */
     function test_fail_setInterestRate_NotOwner() public {
         vm.prank(user1);
         vm.expectRevert();
         rebaseToken.setInterestRate(4e10);
     }
 
+    /**
+     * @notice Tests that setting the interest rate fails if the new rate is not lower.
+     */
     function test_fail_setInterestRate_RateNotLower() public {
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(RebaseToken.RebaseToken__InterestRateCanOnlyDecrease.selector, INTEREST_RATE + 1, INTEREST_RATE));
         rebaseToken.setInterestRate(INTEREST_RATE + 1);
     }
 
+    /**
+     * @notice Tests that tokens can be minted successfully.
+     */
     function test_mint() public {
         uint256 amount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -77,12 +107,18 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.getUserInterestRate(user1), rebaseToken.getInterestRate());
     }
 
+    /**
+     * @notice Tests that minting fails if not called by a minter.
+     */
     function test_fail_mint_NotMinter() public {
         vm.prank(user1);
         vm.expectRevert();
         rebaseToken.mint(user1, 1000, rebaseToken.getUserInterestRate(user1));
     }
 
+    /**
+     * @notice Tests that tokens can be burned successfully.
+     */
     function test_burn() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -95,12 +131,18 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.principleBalanceOf(user1), mintAmount - burnAmount);
     }
 
+    /**
+     * @notice Tests that burning fails if not called by a minter.
+     */
     function test_fail_burn_NotMinter() public {
         vm.prank(user1);
         vm.expectRevert();
         rebaseToken.burn(user1, 100);
     }
     
+    /**
+     * @notice Tests burning the maximum amount of tokens.
+     */
     function test_burn_max() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -114,6 +156,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.balanceOf(user1), 0);
     }
 
+    /**
+     * @notice Tests that the balance correctly includes accumulated interest.
+     */
     function test_balanceOf_withInterest() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -128,6 +173,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.balanceOf(user1), expectedInterest);
     }
 
+    /**
+     * @notice Tests a simple token transfer.
+     */
     function test_transfer() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -141,6 +189,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.getUserInterestRate(user2), rebaseToken.getUserInterestRate(user1));
     }
 
+    /**
+     * @notice Tests transferring the maximum amount of tokens.
+     */
     function test_transfer_max() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -157,6 +208,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.balanceOf(user1), 0);
     }
 
+    /**
+     * @notice Tests the transferFrom function.
+     */
     function test_transferFrom() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -175,6 +229,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.principleBalanceOf(user2), transferAmount);
     }
 
+    /**
+     * @notice Tests transferring the maximum amount of tokens using transferFrom.
+     */
     function test_transferFrom_max() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -194,6 +251,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.balanceOf(user1), 0);
     }
 
+    /**
+     * @notice Tests that the principle balance is not affected by interest accrual.
+     */
     function test_principleBalanceOf() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -204,6 +264,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.principleBalanceOf(user1), mintAmount);
     }
 
+    /**
+     * @notice Tests the interest calculation over time with multiple mints.
+     */
     function test_interestCalculation() public {
         // 1. Mint 1000 tokens to user1
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
@@ -239,6 +302,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.balanceOf(user1), expectedBalance2);
     }
 
+    /**
+     * @notice Tests that a recipient with no balance inherits the sender's interest rate.
+     */
     function test_transfer_recipient_inherits_interest() public {
         uint256 mintAmount = 1000 * PRECISION_FACTOR;
         vm.prank(minter);
@@ -256,6 +322,9 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.getUserInterestRate(user2), rebaseToken.getUserInterestRate(user1));
     }
 
+    /**
+     * @notice Tests that a recipient with an existing balance keeps their own interest rate after a transfer.
+     */
     function test_transfer_recipient_keeps_interest() public {
         // Mint to user1
         uint256 mintAmount1 = 1000 * PRECISION_FACTOR;

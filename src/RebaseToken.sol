@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: MIT
+/**
+ * @title Rebase Token
+ * @author Gabriel Eguiguren
+ * @notice This contract implements a cross-chain rebase token.
+ * The token's supply adjusts automatically based on a defined interest rate.
+ * It's designed to incentivize users to deposit their tokens into a vault to earn interest.
+ */
 pragma solidity ^0.8.24;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -6,8 +13,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
- * @title Rebase Token
- * @author Gabriel Eguiguren P.
  * @notice This is a cross-chain rebase token that incentivates users to deposit into a vault and gain interest.
  * @notice The interest rate in the smart contract can only decrease by the owner of the contract.
  * @notice Each user will have their own interest rate that is the global interest rate at the time of depositing
@@ -28,12 +33,19 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     constructor() ERC20("Rebase Token", "RBT") Ownable(msg.sender) {
     }
 
-    // uses AccessControl: _grantRole function
+    /**
+     * @notice Grants the mint and burn role to a specified user.
+     * @param _user The address to grant the role to.
+     */
     function grantMintAndBurnRole(address _user) external onlyOwner {
         _grantRole(MINT_AND_BURN_ROLE, _user);
     }
 
-
+    /**
+     * @notice Sets the interest rate for the token.
+     * @dev The new interest rate must be lower than the current rate.
+     * @param _newInterestRate The new interest rate to set.
+     */
     function setInterestRate(uint256 _newInterestRate) external onlyOwner {
         if(_newInterestRate >= s_interestRate) {
             revert RebaseToken__InterestRateCanOnlyDecrease(_newInterestRate, s_interestRate);
@@ -42,13 +54,25 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         emit InterestRateSet(s_interestRate);
     }
     
-    // implemented access control based on an specific role
+    /**
+     * @notice Mints new tokens to a specified address.
+     * @dev This function can only be called by addresses with the MINT_AND_BURN_ROLE.
+     * @param _to The address to mint the tokens to.
+     * @param _amount The amount of tokens to mint.
+     * @param _userInterestRate The interest rate for the user.
+     */
     function mint(address _to, uint256 _amount, uint256 _userInterestRate) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAcumulatedInterest(_to); // is the value adquired since the first mint
         s_userInterestRate[_to] = _userInterestRate; 
         _mint(_to, _amount);
     }
 
+    /**
+     * @notice Burns tokens from a specified address.
+     * @dev This function can only be called by addresses with the MINT_AND_BURN_ROLE.
+     * @param _from The address to burn the tokens from.
+     * @param _amount The amount of tokens to burn.
+     */
     function burn(address _from, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
         if(_amount == type(uint256).max ){
             _amount = balanceOf(_from); // mitigation of dust due to rounding errors
@@ -57,12 +81,22 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         _burn(_from, _amount);
     }
 
-    // overrides balanceOf function from ERC20 contract, includes the acumulated interest  
+    /**
+     * @notice Overrides the default balanceOf function to include accumulated interest.
+     * @param _user The address to get the balance of.
+     * @return linearInterest The user's balance including interest.
+     */
     function balanceOf(address _user) public view override returns (uint256 linearInterest) {
         // every interaction will call this, even small amounts. That could lead to compound interest
         return super.balanceOf(_user) * _calculateUserAccumulatedInterestSinceLastUpdate(_user) / PRECISION_FACTOR;
     }
 
+    /**
+     * @notice Overrides the default transfer function to mint accumulated interest for both sender and recipient.
+     * @param _recipient The address of the recipient.
+     * @param _amount The amount to transfer.
+     * @return success A boolean indicating whether the transfer was successful.
+     */
     function transfer(address _recipient, uint256 _amount) public override returns (bool success) {
         _mintAcumulatedInterest(msg.sender);
         _mintAcumulatedInterest(_recipient);
@@ -76,6 +110,13 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         return super.transfer(_recipient, _amount);
     }
 
+    /**
+     * @notice Overrides the default transferFrom function to mint accumulated interest for both sender and recipient.
+     * @param _sender The address of the sender.
+     * @param _recipient The address of the recipient.
+     * @param _amount The amount to transfer.
+     * @return success A boolean indicating whether the transfer was successful.
+     */
     function transferFrom(address _sender, address _recipient, uint256 _amount) public override returns (bool success) {
         _mintAcumulatedInterest(_sender);
         _mintAcumulatedInterest(_recipient);
@@ -89,6 +130,11 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         return super.transferFrom(_sender,_recipient, _amount);
     }
 
+    /**
+     * @notice Calculates the accumulated interest for a user since their last update.
+     * @param _user The address of the user.
+     * @return linearInterest The accumulated interest.
+     */
     function _calculateUserAccumulatedInterestSinceLastUpdate(address _user) internal view 
         returns (uint256 linearInterest ) {
         uint256 timePassed = block.timestamp - s_userLastUpdatedTimeStamp[_user];
@@ -96,8 +142,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     }
 
     /**
-     * @notice Mint the acumulated interest to the user since the last interaction with the protocol(ex: burn, mint, transfer)
-     * @param _user the destination for the interest
+     * @notice Mints the accumulated interest to the user since the last interaction with the protocol.
+     * @param _user The destination for the interest.
      */
     function _mintAcumulatedInterest(address _user) internal {
         // (1) current balance of rebase tokens that have been minted to the user
