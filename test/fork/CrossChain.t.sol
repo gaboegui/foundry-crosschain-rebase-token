@@ -4,6 +4,8 @@
  * @author Gabriel Eguiguren
  * @notice This test suite validates the cross-chain functionality of the RebaseToken,
  * ensuring that tokens can be bridged between different blockchains while maintaining their interest rate properties.
+ * @dev IMPORTANT: If you are using via_ir = true in foundry.toml or forge build --via-ir
+ *   the functions that will use vm.warp are not working due a know BUG
  */
 pragma solidity ^0.8.24;
 
@@ -187,50 +189,137 @@ contract CrossChainRebaseToken is Test {
      * @param originToken The RebaseToken on the origin chain.
      * @param destinationToken The RebaseToken on the destination chain.
      */
-    function bridgeTokens(uint256 amountToBridge, uint256 originFork, uint256 destinationFork,
-        Register.NetworkDetails memory originNetworkDetails, 
+    function bridgeTokens(
+        uint256 amountToBridge,
+        uint256 originFork,
+        uint256 destinationFork,
+        Register.NetworkDetails memory originNetworkDetails,
         Register.NetworkDetails memory destinationNetworkDetails,
-        RebaseToken originToken, RebaseToken destinationToken
+        RebaseToken originToken,
+        RebaseToken destinationToken
     ) public {
         vm.selectFork(originFork);
-     
-        // set the amount
-        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+
+        Client.EVM2AnyMessage memory message = _buildCcipMessage(
+            amountToBridge,
+            address(originToken),
+            originNetworkDetails.linkAddress
+        );
+
+        _approveCcipTokens(
+            amountToBridge,
+            originNetworkDetails.routerAddress,
+            destinationNetworkDetails.chainSelector,
+            message,
+            originNetworkDetails.linkAddress,
+            address(originToken)
+        );
+
+        _executeAndVerifyCcipSend(
+            originFork,
+            destinationFork,
+            originNetworkDetails,
+            destinationNetworkDetails,
+            originToken,
+            destinationToken,
+            message,
+            amountToBridge
+        );
+    }
+
+    /**
+     * @notice Builds the CCIP message for bridging tokens.
+     * @param amountToBridge The amount of tokens to bridge.
+     * @param tokenAddress The address of the token to bridge.
+     * @param feeTokenAddress The address of the fee token.
+     * @return message The constructed CCIP message.
+     */
+    function _buildCcipMessage(
+        uint256 amountToBridge,
+        address tokenAddress,
+        address feeTokenAddress
+    ) internal view returns (Client.EVM2AnyMessage memory message) {
+        Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](
+            1
+        );
         tokenAmounts[0] = Client.EVMTokenAmount({
-            token: address(originToken),
+            token: tokenAddress,
             amount: amountToBridge
         });
-        // set the message data
-        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+
+        message = Client.EVM2AnyMessage({
             receiver: abi.encode(address(user)),
             data: "",
             tokenAmounts: tokenAmounts,
-            feeToken: originNetworkDetails.linkAddress,  // we will pay with LINK
+            feeToken: feeTokenAddress,
             extraArgs: Client._argsToBytes(
-                Client.EVMExtraArgsV2({gasLimit: 500_000, allowOutOfOrderExecution: false}))
+                Client.EVMExtraArgsV2({
+                    gasLimit: 500_000,
+                    allowOutOfOrderExecution: false
+                })
+            )
         });
+    }
 
-        // get the fee on the destination chain and found the account to pay it
-        uint256 fee = IRouterClient(originNetworkDetails.routerAddress)
-            .getFee(destinationNetworkDetails.chainSelector, message);
+    /**
+     * @notice Approves tokens for CCIP transfer.
+     * @param amountToBridge The amount of tokens to bridge.
+     * @param routerAddress The address of the CCIP router.
+     * @param destinationChainSelector The chain selector of the destination chain.
+     * @param message The CCIP message.
+     * @param linkAddress The address of the LINK token.
+     * @param tokenAddress The address of the token to bridge.
+     */
+    function _approveCcipTokens(
+        uint256 amountToBridge,
+        address routerAddress,
+        uint64 destinationChainSelector,
+        Client.EVM2AnyMessage memory message,
+        address linkAddress,
+        address tokenAddress
+    ) internal {
+        uint256 fee = IRouterClient(routerAddress).getFee(
+            destinationChainSelector,
+            message
+        );
         ccipLocalSimulatorFork.requestLinkFromFaucet(user, fee);
-        
-        // and aprove it to spend the fee and amountToBridge
+
         vm.prank(user);
-        IERC20(originNetworkDetails.linkAddress)
-            .approve(address(originNetworkDetails.routerAddress), fee);
+        IERC20(linkAddress).approve(routerAddress, fee);
         vm.prank(user);
-        IERC20(address(originToken))
-            .approve(address(originNetworkDetails.routerAddress), amountToBridge);
-        
+        IERC20(tokenAddress).approve(routerAddress, amountToBridge);
+    }
+
+    /**
+     * @notice Executes the CCIP send and verifies the cross-chain transfer.
+     * @param originFork The fork of the origin chain.
+     * @param destinationFork The fork of the destination chain.
+     * @param originNetworkDetails The network details of the origin chain.
+     * @param destinationNetworkDetails The network details of the destination chain.
+     * @param originToken The RebaseToken on the origin chain.
+     * @param destinationToken The RebaseToken on the destination chain.
+     * @param message The CCIP message.
+     * @param amountToBridge The amount of tokens bridged.
+     */
+    function _executeAndVerifyCcipSend(
+        uint256 originFork,
+        uint256 destinationFork,
+        Register.NetworkDetails memory originNetworkDetails,
+        Register.NetworkDetails memory destinationNetworkDetails,
+        RebaseToken originToken,
+        RebaseToken destinationToken,
+        Client.EVM2AnyMessage memory message,
+        uint256 amountToBridge
+    ) internal {
         uint256 originBalanceBefore = originToken.balanceOf(user);
         uint256 originUserInterest = originToken.getUserInterestRate(user);
 
-        // finally send the tokens
         vm.prank(user);
-        IRouterClient(originNetworkDetails.routerAddress)
-            .ccipSend(destinationNetworkDetails.chainSelector, message);
-        
+        IRouterClient(originNetworkDetails.routerAddress).ccipSend(
+            destinationNetworkDetails.chainSelector,
+            message
+        );
+
         uint256 originBalanceAfter = originToken.balanceOf(user);
         assertEq(originBalanceAfter, originBalanceBefore - amountToBridge);
 
@@ -238,14 +327,18 @@ contract CrossChainRebaseToken is Test {
         vm.warp(block.timestamp + 20 minutes);
         uint256 destinationBalanceBefore = destinationToken.balanceOf(user);
 
-        // this propagates the message and send it crosschain
         vm.selectFork(originFork);
         ccipLocalSimulatorFork.switchChainAndRouteMessage(destinationFork);
 
         uint256 destinationBalanceAfter = destinationToken.balanceOf(user);
-        uint256 destinationUserInterest = destinationToken.getUserInterestRate(user);
+        uint256 destinationUserInterest = destinationToken.getUserInterestRate(
+            user
+        );
 
-        assertEq(destinationBalanceAfter, destinationBalanceBefore + amountToBridge);
+        assertEq(
+            destinationBalanceAfter,
+            destinationBalanceBefore + amountToBridge
+        );
         assertEq(originUserInterest, destinationUserInterest);
     }
 

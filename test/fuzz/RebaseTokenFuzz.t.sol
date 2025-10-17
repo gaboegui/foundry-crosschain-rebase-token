@@ -6,14 +6,13 @@
  */
 pragma solidity ^0.8.27;
 
-import { Test , console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { RebaseToken } from "../../src/RebaseToken.sol";
 import { IRebaseToken } from "../../src/interfaces/IRebaseToken.sol";
 import { Vault } from "../../src/Vault.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-
-contract RebaseTokenTest is Test {
+contract RebaseTokenFuzzTest is Test {
 
     RebaseToken private rebaseToken;
     Vault private vault;
@@ -39,9 +38,10 @@ contract RebaseTokenTest is Test {
      * @dev Adds rewards to the vault.
      * @param rewardAmount The amount of rewards to add.
      */
-    function addRewardsToVault(uint256 rewardAmount) public {
+    function addRewardsToVault(uint256 rewardAmount) public returns(bool) {
         // founding the vault with rewards
         (bool success,) = payable(address(vault)).call{value: rewardAmount}(""); 
+        return success;
     }
 
     // Fuzzy test, the amount will vary between 1e5 and 1e18
@@ -120,7 +120,7 @@ contract RebaseTokenTest is Test {
         // we add the exact necesary quantity of reward to the vault;
         vm.deal(owner, newBalance - amount);
         vm.prank(owner);
-        addRewardsToVault(newBalance - amount);
+        assertEq(addRewardsToVault(newBalance - amount), true);
         
         // now redeem
         vm.prank(user);
@@ -204,10 +204,13 @@ contract RebaseTokenTest is Test {
      * @dev Tests that a non-minter cannot call the mint function.
      *      - Expects the transaction to revert.
      */
-    function testAnyUserCanNotCallMint() public {
+    function testAnyUserCanNotCallMint(uint256 amount) public {
+        amount = bound(amount, 1e5 + 1e3 , type(uint128).max);
+        vm.deal(user, amount);
         vm.prank(user);
+        uint256 interest = rebaseToken.getUserInterestRate(user);
         vm.expectRevert();
-        rebaseToken.mint(user, 100, rebaseToken.getUserInterestRate(user));
+        rebaseToken.mint(user, 100, interest);
     }
 
     /**
@@ -241,7 +244,7 @@ contract RebaseTokenTest is Test {
         assertEq(rebaseToken.principleBalanceOf(user), amount);
     }
 
-    function testGetRebaseTokenAddress() public {
+    function testGetRebaseTokenAddress() public view {
         assertEq(vault.getRebaseTokenAddress(), address(rebaseToken));
     }
 
