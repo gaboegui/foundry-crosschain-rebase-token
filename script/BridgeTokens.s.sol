@@ -43,7 +43,7 @@ contract BridgeTokens is Script{
             receiver: abi.encode(receiverAddress), data: "",
             tokenAmounts: tokenAmounts,
             feeToken: linkTokenAddress,  // could be LINK or other token
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 800000}))
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 2000000}))
         });
 
         // get the fee on the destination chain and found the account to pay it
