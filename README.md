@@ -111,13 +111,51 @@ forge fmt
 forge snapshot
 ```
 
+## Testing
+
+The project implements three types of tests to ensure comprehensive coverage and reliability:
+
+### Unit Tests
+Located in `test/unit/`, these tests validate individual functions and state changes in isolation. They cover core functionality such as minting, burning, transfers, interest rate management, and balance calculations. Unit tests use deterministic inputs to verify expected behavior under controlled conditions.
+
+### Fuzz Tests
+Located in `test/fuzz/`, these tests use property-based testing with random inputs to uncover edge cases and potential vulnerabilities. They test properties like interest rate linearity, deposit/redeem functionality, and transfer mechanics across a wide range of inputs, bounded within realistic constraints.
+
+### Fork Tests
+Located in `test/fork/`, these tests simulate cross-chain interactions by forking real blockchain networks (Sepolia and Arbitrum Sepolia). They validate end-to-end cross-chain token bridging functionality, ensuring that interest rates are preserved during transfers between different networks using Chainlink's CCIP protocol.
+
 ## Complete Example Script: Bridge from Sepolia Ethereum to Arbitrum Sepolia
 
-You can run a complete bridge example running the followin command:
+You should include your own **.env file** with the following variables:
+```shell
+Test*pASSWORD4Y0UR-KEYSTORE
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/XXX...
+ARB_SEPOLIA_RPC_URL=https://arb-sepolia.g.alchemy.com/v2/XXX...
+ETHERSCAN_API_KEY=XEJKAX8M....
+ARBISCAN_API_KEY=XEJKAX8M.... 
+```
+
+You can run a complete Deploy, Verify and Bridge transfer execution example running the following commands:
 
 ```shell
+chmod +x ./bridgeToArbitrum.sh
 ./bridgeToArbitrum.sh
 ```
+### Deployed and Verified Contracts
+
+**ARBITRUM SEPOLIA**
+
+TOKEN: [0x92dF841e734207e72061A63b641922127F336701](https://sepolia.arbiscan.io/address/0x92dF841e734207e72061A63b641922127F336701)
+
+POOL: [0x76D6B5Ba5eE54348a50Fef888adf22cE0D7c9c51](https://sepolia.arbiscan.io/address/0x76D6B5Ba5eE54348a50Fef888adf22cE0D7c9c51)
+
+**ETHEREUM SEPOLIA**
+
+TOKEN: [0x2ddeFc338823E53693CCce0E3EC9214Cc389A9F0](https://sepolia.etherscan.io/address/0x2ddeFc338823E53693CCce0E3EC9214Cc389A9F0)
+
+POOL: [0x78dF725eDad1b5Cd066ec3c649997cBB6a8A8cE0](https://sepolia.etherscan.io/address/0x78dF725eDad1b5Cd066ec3c649997cBB6a8A8cE0)
+
+VAULT: [0xfE5CDfc482280646AC3e8644027BEfAAA602F1c8](https://sepolia.etherscan.io/address/0xfE5CDfc482280646AC3e8644027BEfAAA602F1c8)
 
 ### Deploy
 
