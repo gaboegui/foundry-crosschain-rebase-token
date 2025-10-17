@@ -30,7 +30,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
 
     event InterestRateSet(uint256 interestRate);
 
-    constructor() ERC20("Rebase Token", "RBT") Ownable(msg.sender) {
+    constructor() ERC20("ETH Rebased Token", "ETHRBT") Ownable(msg.sender) {
     }
 
     /**
