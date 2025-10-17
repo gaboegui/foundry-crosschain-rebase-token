@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # Author: Gabriel Eguiguren P.
-# Define constants 
-AMOUNT=10000000
+# You create the ERC-2335: BLS12-381 Keystore with the PRIVATE KEY with this command:
+#    cast wallet import sepoliaAccount2 --interactive
+# We can provide the password of the sepoliaAccount2 to avoid enTering every time that is need
 PASSWORD=$(head -n 1 .env)
-="Test123456"
+="SAF3.Passw0rd"
+
+# Define constants 
+# Amount in Wei = 0.001 Ether
+AMOUNT=1000000000000000
 
 ARB_SEPOLIA_ROUTER="0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 ARB_SEPOLIA_CHAIN_SELECTOR="3478487238524512106"
